@@ -1,0 +1,33 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.zip
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Planning and reference documents
+marksdown-not-for-upload/
+examples.md
+TODO.md
+
+# Temporary scripts
+*.tmp.sql
+update_*.sql
+
+.env*
+
+
