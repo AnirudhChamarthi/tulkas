@@ -15,49 +15,6 @@ services:
     http_port: 8080
     health_check:
       http_path: /health
-    envs:
-      - key: DATABASE_URL
-        scope: RUN_TIME
-        value: ${DATABASE_URL}
-      - key: REDIS_URL
-        scope: RUN_TIME
-        value: ${REDIS_URL}
-      - key: SPACES_KEY
-        scope: RUN_TIME
-        value: ${SPACES_KEY}
-      - key: SPACES_SECRET
-        scope: RUN_TIME
-        value: ${SPACES_SECRET}
-      - key: SPACES_ENDPOINT
-        scope: RUN_TIME
-        value: ${SPACES_ENDPOINT}
-      - key: SPACES_BUCKET
-        scope: RUN_TIME
-        value: ${SPACES_BUCKET}
-      - key: GRADIENT_API_KEY
-        scope: RUN_TIME
-        value: ${GRADIENT_API_KEY}
-      - key: GRADIENT_MODEL_ID
-        scope: RUN_TIME
-        value: ${GRADIENT_MODEL_ID}
-      - key: GRADIENT_MODEL_ID_ADVANCED
-        scope: RUN_TIME
-        value: ${GRADIENT_MODEL_ID_ADVANCED}
-      - key: GRADIENT_INFERENCE_URL
-        scope: RUN_TIME
-        value: ${GRADIENT_INFERENCE_URL}
-      - key: GRADIENT_KB_ID
-        scope: RUN_TIME
-        value: ${GRADIENT_KB_ID}
-      - key: GRADIENT_AGENT_ENDPOINT
-        scope: RUN_TIME
-        value: ${GRADIENT_AGENT_ENDPOINT}
-      - key: BRAVE_SEARCH_KEY
-        scope: RUN_TIME
-        value: ${BRAVE_SEARCH_KEY}
-      - key: FUNCTION_BRAVE_SEARCH_URL
-        scope: RUN_TIME
-        value: ${FUNCTION_BRAVE_SEARCH_URL}
-      - key: FUNCTION_ARTICLE_FETCH_URL
-        scope: RUN_TIME
-        value: ${FUNCTION_ARTICLE_FETCH_URL}
+    # Env vars: set all in App Platform UI (Settings → Environment Variables).
+    # Required: DATABASE_URL, REDIS_URL, SPACES_*, GRADIENT_*, BRAVE_SEARCH_KEY,
+    #           FUNCTION_BRAVE_SEARCH_URL, FUNCTION_ARTICLE_FETCH_URL
