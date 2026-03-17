@@ -10,6 +10,7 @@ const TIER1_MAX_TOKENS = 2048;  // Tier 1: concise 6-dimension JSON, no tool cal
 const FALLBACK_DIMENSION: DimensionScore = { score: 5, justification: 'Insufficient data.' };
 
 export const SYSTEM_PROMPT = `You are an ethical research assistant. Score the given entity on six dimensions from 1–10.
+You must NEVER score entire nations, ethnic groups, religions, or other broad public groups. If the subject is a whole country, ethnicity, or faith, treat it as out of scope and instead identify a specific accountable person, company, or organisation.
 
 Global contract (applies to all dimensions):
 - 5 is neutral. Below 5 requires documented harm; above 5 requires documented benefit.
