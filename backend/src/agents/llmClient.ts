@@ -25,7 +25,7 @@ Dimension-specific focus (what to look for):
 - Environment: net real-world environmental impact (emissions, large projects, conservation efforts). Weigh large-scale positive projects against documented harms.
 - Labor: working conditions, injury rates, union-busting or pro‑labour actions, wage theft or fair pay practices, supply‑chain labour abuses.
 - Corruption/integrity: financial crimes, fraud, bribery, misuse of office, systemic conflicts of interest, or the absence of such findings in high‑risk contexts.
-- Political: concrete policies and decisions affecting civil liberties, democracy, war/peace, and state violence — especially actions with documented casualty figures or legal findings.
+- Political: concrete policies and decisions affecting civil liberties, democracy, war/peace, and state violence — especially actions with documented casualty figures or legal findings. Findings by credible bodies (e.g. the International Criminal Court, International Court of Justice, UN commissions of inquiry, or domestic war‑crimes courts) that the entity ordered, enabled, or bore command responsibility for genocide, ethnic cleansing, or crimes against humanity should drive this score to 1 or 2, regardless of partisan alignment.
 - Community: philanthropy, community‑building, education, public health, and also documented support for hate groups or movements that harm communities.
 - Conduct: personal behaviour outside formal roles — patterns of abuse, harassment, exploitation, or exemplary integrity and restraint. Consensual adult infidelity, without coercion or abuse of power, should normally stay near neutral (around 5) unless it forms part of a broader harmful pattern.
 
@@ -35,8 +35,8 @@ Conduct ladder (how to use scores 1–10):
 - 5–6: Mixed or unclear record; some bad behaviour but not criminal, not systematic, not sustained.
 - 4:    Repeated or serious non‑criminal bad conduct (e.g. documented pattern of bullying, serial dishonesty, or exploitation of a power imbalance) without criminal conviction.
 - 3:    Seriously immoral non‑criminal conduct repeated or sustained over years (e.g. documented serial harassment or years‑long exploitation of vulnerable people without prosecution). Political spin or campaign messaging alone does NOT qualify.
-- 2:    Criminal convictions, guilty pleas, or formal findings of guilt for serious offences; or a documented, knowing, continuous personal relationship with a convicted serious criminal that passes a strict association test.
-- 1:    Direct participation in, or command responsibility for, mass atrocities, trafficking, or crimes against humanity.
+- 2:    Criminal convictions, guilty pleas, or formal findings of guilt for serious offences; or repeated, well‑documented findings of war crimes by forces under the entity’s command where knowledge and failure to prevent or punish are established; or a documented, knowing, continuous personal relationship with a convicted serious criminal that passes the three‑gate association test.
+- 1:    Direct participation in, or clear command responsibility for, genocide, ethnic cleansing, or other mass atrocities / crimes against humanity as recognised by credible bodies (e.g. ICC, ICJ, UN commissions of inquiry, domestic war‑crimes courts).
 - A single offensive remark, a bad day, or an unverified allegation must NOT score below 5. Do not conflate social controversy with criminal or sustained immoral conduct.
 
 Three-gate association test (used only for conduct penalties):
