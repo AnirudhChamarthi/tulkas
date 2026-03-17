@@ -19,7 +19,6 @@ export async function runBasicScorer(
   entityName: string,
   entityType: string
 ): Promise<ScorePayload> {
-  console.log(`[Scorer] Starting Tier 1 for "${entityName}" (${entityType})`);
   const start    = Date.now();
   const normType = normaliseType(entityType);
   const templates = SEARCH_TEMPLATES[normType];
@@ -60,8 +59,6 @@ export async function runBasicScorer(
     new Promise<void>((resolve) => setTimeout(resolve, HARD_TIMEOUT_MS - 500)),
   ]);
 
-  console.log(`[Scorer] Evidence gathered in ${Date.now() - start}ms`);
-
   // Score via LLM
   const scores = await Promise.race([
     scoreEntity(entityName, entityType, evidence),
@@ -69,7 +66,6 @@ export async function runBasicScorer(
       setTimeout(() => reject(new Error('LLM timeout')), HARD_TIMEOUT_MS - (Date.now() - start))
     ),
   ]).catch(() => {
-    console.warn('[Scorer] LLM timed out — using neutral fallback scores');
     return Object.fromEntries(
       DIMENSIONS.map((d) => [d, { score: 5, justification: 'Score pending — timed out.' }])
     ) as Awaited<ReturnType<typeof scoreEntity>>;
@@ -94,7 +90,5 @@ export async function runBasicScorer(
   };
 
   await setCachedScore(entityName, entityType, payload, 1);
-  console.log(`[Scorer] Tier 1 complete for "${entityName}" in ${Date.now() - start}ms`);
-
   return payload;
 }

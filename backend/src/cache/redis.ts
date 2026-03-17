@@ -14,9 +14,7 @@ export const redisClient = createClient({
   },
 });
 
-redisClient.on('error', (err) => {
-  console.error('Redis error:', err.message);
-});
+redisClient.on('error', () => {});
 
 const SCORE_TTL = 60 * 60 * 24 * 7; // 7 days
 const JOB_TTL   = 60 * 60 * 24;     // 24 hours

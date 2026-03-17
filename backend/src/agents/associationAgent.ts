@@ -55,8 +55,6 @@ Reply with JSON only: { "associated": true/false, "reason": "<one sentence>" }`;
 }
 
 export async function runAssociationPhase1(entityName: string): Promise<AssociationResult> {
-  console.log(`[Assoc] Phase 1 for ${entityName}`);
-
   const results = await braveSearch(`"${entityName}" associate criminal convicted`, 5);
 
   if (results.length === 0) {
@@ -79,20 +77,17 @@ export async function runAssociationPhase1(entityName: string): Promise<Associat
   }
 
   if (!highestSeverity || flaggedSnippets.length === 0) {
-    console.log(`[Assoc] No qualifying associations for ${entityName}`);
     return { penalty: 0, summary: 'No qualifying criminal associations found.' };
   }
 
   // LLM verification gate — prevents false positives from co-occurrence
   const confirmed = await verifyAssociation(entityName, flaggedSnippets);
   if (!confirmed) {
-    console.log(`[Assoc] LLM rejected association for ${entityName} (co-occurrence only)`);
     return { penalty: 0, summary: 'No verified criminal associations found.' };
   }
 
   const penalty = SEVERITY_PENALTY[highestSeverity];
   const summary = `Gate 1 triggered (severity: ${highestSeverity}). Conduct penalty: -${penalty}. Evidence: ${flaggedSnippets[0] ?? ''}`;
 
-  console.log(`[Assoc] ${entityName} — penalty ${penalty} (${highestSeverity})`);
   return { penalty, summary };
 }

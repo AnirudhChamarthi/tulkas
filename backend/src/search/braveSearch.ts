@@ -61,7 +61,6 @@ export async function braveSearch(
     });
 
     if (!res.ok) {
-      console.warn(`[BraveSearch] HTTP ${res.status} for query: "${query}"`);
       return [];
     }
 
@@ -70,7 +69,6 @@ export async function braveSearch(
     };
 
     const results = data.web?.results ?? [];
-    console.log(`[BraveSearch] "${query}" → ${results.length} results`);
 
     return results
       .filter((r) => !isBlockedDomain(r.url ?? ''))
@@ -82,12 +80,7 @@ export async function braveSearch(
       }))
       .filter((r) => r.snippet.length > 40);
 
-  } catch (err: unknown) {
-    if (err instanceof Error && err.name === 'AbortError') {
-      console.warn(`[BraveSearch] Timeout on query: "${query}"`);
-    } else {
-      console.warn(`[BraveSearch] Error on query: "${query}"`, err);
-    }
+  } catch {
     return [];
   } finally {
     clearTimeout(timer);

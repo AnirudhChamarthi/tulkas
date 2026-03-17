@@ -214,9 +214,6 @@ export async function scoreEntity(
 
   const userContent = `Entity: ${entityName} (${entityType})\n\n${evidenceText}`;
 
-  console.log(`[LLM] Scoring ${entityName}...`);
-  const start = Date.now();
-
   let raw = '';
   let scores: LLMScoreResult | null = null;
 
@@ -225,20 +222,17 @@ export async function scoreEntity(
     scores = parseScores(raw);
 
     if (!scores) {
-      console.warn('[LLM] Parse failed on first attempt, retrying...');
       raw    = await callInference(userContent, true);
       scores = parseScores(raw);
     }
-  } catch (err) {
-    console.error('[LLM] Inference error:', err);
+  } catch {
+    // inference error — fall through to fallback
   }
 
   if (!scores) {
-    console.warn('[LLM] Both attempts failed, using fallback scores');
     scores = Object.fromEntries(DIMENSIONS.map((d) => [d, FALLBACK_DIMENSION])) as LLMScoreResult;
   }
 
-  console.log(`[LLM] Done in ${Date.now() - start}ms`);
   return scores;
 }
 

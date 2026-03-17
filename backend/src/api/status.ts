@@ -22,8 +22,7 @@ statusRouter.get('/status/:jobId', async (req: Request, res: Response): Promise<
 
     res.json(job);
 
-  } catch (err) {
-    console.error('GET /score/status error:', err);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

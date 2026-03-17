@@ -36,10 +36,7 @@ export async function queryKnowledgeBase(
       body: JSON.stringify({ query, top_k: 3 }),
     });
 
-    if (!res.ok) {
-      console.warn(`[KB] Query failed (${res.status}) for ${entityName}/${dimension}`);
-      return null;
-    }
+    if (!res.ok) return null;
 
     const data = await res.json() as KBQueryResponse;
     const passages = data.passages ?? data.data ?? [];
@@ -48,16 +45,11 @@ export async function queryKnowledgeBase(
       (p) => p.score >= RELEVANCE_THRESHOLD && p.content.length >= MIN_PASSAGE_LENGTH
     );
 
-    if (relevant.length === 0) {
-      console.log(`[KB] Miss: ${entityName} / ${dimension}`);
-      return null;
-    }
+    if (relevant.length === 0) return null;
 
-    console.log(`[KB] Hit: ${entityName} / ${dimension} (${relevant.length} passages)`);
     return relevant.map((p) => p.content).join('\n\n');
 
-  } catch (err) {
-    console.warn('[KB] Query error:', err);
+  } catch {
     return null;
   }
 }
@@ -69,10 +61,9 @@ export async function indexEvidence(
   content:    string
 ): Promise<void> {
   try {
-    const qHash  = hashQuery(entityName, dimension);
-    const blobUrl = await uploadEvidence(entityId, qHash, content);
-    console.log(`[KB] Indexed evidence for ${entityName}/${dimension} → ${blobUrl}`);
-  } catch (err) {
-    console.warn('[KB] Index error:', err);
+    const qHash = hashQuery(entityName, dimension);
+    await uploadEvidence(entityId, qHash, content);
+  } catch {
+    // non-fatal
   }
 }

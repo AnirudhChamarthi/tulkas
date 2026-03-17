@@ -35,9 +35,8 @@ scoreRouter.get('/resolve', async (req: Request, res: Response): Promise<void> =
     const entity = raw.trim().toUpperCase() === 'ACCOUNT_ONLY' ? handle : raw.trim();
     if (entity) await redisClient.set(cacheKey, entity, { EX: RESOLVE_TTL });
     res.json({ entity: entity || handle });
-  } catch (err) {
-    console.error('GET /score/resolve error:', err);
-    res.json({ entity: handle }); // fallback: keep handle
+  } catch {
+    res.json({ entity: handle });
   }
 });
 
@@ -118,8 +117,7 @@ scoreRouter.post('/resolve-entity', async (req: Request, res: Response): Promise
     }
 
     res.json(payload);
-  } catch (err) {
-    console.error('POST /score/resolve-entity error:', err);
+  } catch {
     res.json({ entity: '', entityType: 'org', confidence: 'low' });
   }
 });
@@ -159,8 +157,7 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     const liveScore = await runBasicScorer(name, type);
     res.json({ source: 'live', ...liveScore });
 
-  } catch (err) {
-    console.error('GET /score error:', err);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -214,19 +211,17 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
         return payload;
       }
 
-      console.log(`[Advanced] No Tier 1 found for "${name}" — running basic scorer first`);
       return runBasicScorer(name, type);
     }
 
     // Fire-and-forget — waits for Tier 1 internally, then runs the agent
     ensureTier1()
       .then((tier1) => runAdvancedScorer(name, type, job_id, note, tier1))
-      .catch((err) => console.error('[Advanced] Unhandled scorer error:', err));
+      .catch(() => {});
 
     res.json({ job_id });
 
-  } catch (err) {
-    console.error('POST /score/advanced error:', err);
+  } catch {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

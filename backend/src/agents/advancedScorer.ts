@@ -59,7 +59,6 @@ export async function runAdvancedScorer(
   const key      = AGENT_KEY();
 
   if (!endpoint || endpoint === 'pending') {
-    console.warn(`[AdvancedScorer] Agent endpoint not configured. Job ${jobId} failed.`);
     await setJobStatus(jobId, { status: 'failed', started_at: new Date().toISOString() });
     return;
   }
@@ -103,7 +102,6 @@ export async function runAdvancedScorer(
       `Do not include any text outside the JSON object.`,
     ].join('\n');
 
-    console.log(`[AdvancedScorer] Message length: ${userMessage.length} chars. Tier 1 baseline: ${tier1Score ? 'yes' : 'no'}`);
     const controller = new AbortController();
     const timer      = setTimeout(() => controller.abort(), AGENT_TIMEOUT);
 
@@ -127,7 +125,6 @@ export async function runAdvancedScorer(
 
     if (!res.ok) {
       const text = await res.text();
-      console.error(`[AdvancedScorer] Agent HTTP ${res.status} response: ${text.slice(0, 600)}`);
       throw new Error(`Agent returned HTTP ${res.status}: ${text.slice(0, 300)}`);
     }
 
@@ -138,11 +135,9 @@ export async function runAdvancedScorer(
     };
 
     const content = data.choices?.[0]?.message?.content ?? '';
-    console.log(`[AdvancedScorer] Agent response for "${entityName}" (${content.length} chars)`);
 
     let scores = parseAgentScores(content);
     if (!scores) {
-      console.warn(`[AdvancedScorer] JSON parse failed for "${entityName}" (${content.length} chars), full raw:\n${content}`);
       throw new Error(`Could not parse agent JSON output for ${entityName}`);
     }
 
@@ -186,12 +181,9 @@ export async function runAdvancedScorer(
     ].join('\n');
 
     uploadEvidence(entityId, hashQuery(entityName, 'advanced'), evidenceSummary)
-      .catch((err) => console.warn('[AdvancedScorer] Spaces upload failed (non-fatal):', err.message));
-
-    console.log(`[AdvancedScorer] Job ${jobId} complete. Avg score: ${avg.toFixed(2)}`);
+      .catch(() => {});
 
   } catch (err) {
-    console.error(`[AdvancedScorer] Job ${jobId} failed:`, err);
     await setJobStatus(jobId, {
       status:     'failed',
       started_at: new Date().toISOString(),
