@@ -1,5 +1,6 @@
 // Utility: flush the Valkey/Redis cache used by Tulkas.
 // Safe to run any time; only wipes cached scores and job state.
+// test
 
 const { createClient } = require('redis');
 
