@@ -20,6 +20,7 @@ export async function runBasicScorer(
   entityType: string
 ): Promise<ScorePayload> {
   const start    = Date.now();
+  console.log(`[Scorer] Tier 1 start`);
   const normType = normaliseType(entityType);
   const templates = SEARCH_TEMPLATES[normType];
   const entityId  = buildEntityId(entityName, entityType);
@@ -59,6 +60,10 @@ export async function runBasicScorer(
     new Promise<void>((resolve) => setTimeout(resolve, HARD_TIMEOUT_MS - 500)),
   ]);
 
+  const kbHits  = DIMENSIONS.filter((d) => kbResults[DIMENSIONS.indexOf(d)]).length;
+  const evCount = Object.keys(evidence).length;
+  console.log(`[Scorer] Evidence: ${evCount}/6 dimensions (${kbHits} from KB, ${evCount - kbHits} from Brave) in ${Date.now() - start}ms`);
+
   // Score via LLM
   const scores = await Promise.race([
     scoreEntity(entityName, entityType, evidence),
@@ -66,6 +71,7 @@ export async function runBasicScorer(
       setTimeout(() => reject(new Error('LLM timeout')), HARD_TIMEOUT_MS - (Date.now() - start))
     ),
   ]).catch(() => {
+    console.warn(`[Scorer] LLM timed out after ${Date.now() - start}ms`);
     return Object.fromEntries(
       DIMENSIONS.map((d) => [d, { score: 5, justification: 'Score pending — timed out.' }])
     ) as Awaited<ReturnType<typeof scoreEntity>>;
@@ -90,5 +96,6 @@ export async function runBasicScorer(
   };
 
   await setCachedScore(entityName, entityType, payload, 1);
+  console.log(`[Scorer] Tier 1 complete in ${Date.now() - start}ms`);
   return payload;
 }

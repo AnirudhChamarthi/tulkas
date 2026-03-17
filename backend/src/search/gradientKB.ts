@@ -36,7 +36,10 @@ export async function queryKnowledgeBase(
       body: JSON.stringify({ query, top_k: 3 }),
     });
 
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`[KB] Query HTTP ${res.status} for dimension: ${dimension}`);
+      return null;
+    }
 
     const data = await res.json() as KBQueryResponse;
     const passages = data.passages ?? data.data ?? [];
@@ -45,11 +48,10 @@ export async function queryKnowledgeBase(
       (p) => p.score >= RELEVANCE_THRESHOLD && p.content.length >= MIN_PASSAGE_LENGTH
     );
 
-    if (relevant.length === 0) return null;
+    return relevant.length > 0 ? relevant.map((p) => p.content).join('\n\n') : null;
 
-    return relevant.map((p) => p.content).join('\n\n');
-
-  } catch {
+  } catch (err) {
+    console.warn(`[KB] Error:`, err instanceof Error ? err.message : String(err));
     return null;
   }
 }

@@ -36,7 +36,7 @@ function stripPaywallText(snippet: string): string {
   }
   return snippet;
 }
-const TIMEOUT_MS     = 2000;
+const TIMEOUT_MS     = 5000;
 
 export async function braveSearch(
   query: string,
@@ -61,6 +61,7 @@ export async function braveSearch(
     });
 
     if (!res.ok) {
+      console.warn(`[Brave] HTTP ${res.status}`);
       return [];
     }
 
@@ -69,8 +70,7 @@ export async function braveSearch(
     };
 
     const results = data.web?.results ?? [];
-
-    return results
+    const filtered = results
       .filter((r) => !isBlockedDomain(r.url ?? ''))
       .slice(0, count)
       .map((r) => ({
@@ -80,7 +80,12 @@ export async function braveSearch(
       }))
       .filter((r) => r.snippet.length > 40);
 
-  } catch {
+    console.log(`[Brave] ${filtered.length}/${results.length} results`);
+    return filtered;
+
+  } catch (err: unknown) {
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    console.warn(`[Brave] ${isTimeout ? 'Timeout' : 'Error'}: ${isTimeout ? '' : String(err)}`);
     return [];
   } finally {
     clearTimeout(timer);
