@@ -1,0 +1,35 @@
+name: Flush Valkey cache on push
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  flush-valkey:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Flush Valkey cache
+        working-directory: backend
+        env:
+          REDIS_URL: ${{ secrets.VALKEY_REDIS_URL }}
+          REDIS_INSECURE_TLS: "false"
+        run: npm run flush:valkey
+
