@@ -23,6 +23,20 @@ export async function resolveHandle(handle: string, platform: string): Promise<s
   return res.entity || handle;
 }
 
+export async function resolveEntityAI(
+  url:        string,
+  title?:     string,
+  candidates?: string[],
+): Promise<{ entity: string; entityType: 'person' | 'org'; confidence?: 'high' | 'medium' | 'low' }> {
+  return apiFetch<{ entity: string; entityType: 'person' | 'org'; confidence?: 'high' | 'medium' | 'low' }>(
+    '/score/resolve-entity',
+    {
+      method: 'POST',
+      body: JSON.stringify({ url, title, candidates }),
+    }
+  );
+}
+
 export async function fetchAdvancedScore(
   entityName: string,
   entityType: string,

@@ -1,7 +1,7 @@
 import { Message, PageContext, ScorePayload } from '../shared/types';
 import { POLL_INTERVAL_MS, POLL_MAX_ATTEMPTS } from '../shared/constants';
 import { getCached, setCached } from './localCache';
-import { fetchScore, fetchAdvancedScore, pollJobStatus, resolveHandle } from './apiClient';
+import { fetchScore, fetchAdvancedScore, pollJobStatus, resolveHandle, resolveEntityAI } from './apiClient';
 
 const tabContext   = new Map<number, PageContext>();
 const tabScore     = new Map<number, ScorePayload>();
@@ -41,7 +41,6 @@ async function startPolling(
   tabId:      number,
   jobId:      string,
   entity:     string,
-  entityType: string,
 ): Promise<void> {
   tabActiveJob.set(tabId, jobId);
   let attempts = 0;
@@ -94,8 +93,8 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
     });
 
     if (primaryEntity) {
-      const doFetch = (entity: string) => {
-        resolveScore(entity, primaryEntityType)
+      const doFetch = (entity: string, entityType: string) => {
+        resolveScore(entity, entityType)
           .then((score) => {
             tabScore.set(tabId, score);
             sendToPopup(tabId, { type: 'SCORE_READY', score, entity });
@@ -103,18 +102,45 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
           .catch(console.error);
       };
 
-      if (needsResolve && platform) {
-        resolveHandle(primaryEntity, platform)
-          .then((resolved) => {
+      const maybeResolveSocial = async () => {
+        if (needsResolve && platform) {
+          try {
+            const resolved = await resolveHandle(primaryEntity, platform);
             const updated = { ...ctx, primaryEntity: resolved, resolveHandle: false };
             tabContext.set(tabId, updated);
             sendToPopup(tabId, { type: 'CONTEXT_READY', context: updated });
-            doFetch(resolved);
-          })
-          .catch(() => doFetch(primaryEntity));
-      } else {
-        doFetch(primaryEntity);
-      }
+            return { entity: resolved, entityType: primaryEntityType };
+          } catch {
+            return { entity: primaryEntity, entityType: primaryEntityType };
+          }
+        }
+        return { entity: primaryEntity, entityType: primaryEntityType };
+      };
+
+      const maybeResolveAI = async (base: { entity: string; entityType: string }) => {
+        if (!ctx.resolveEntity) return base;
+        try {
+          const r = await resolveEntityAI(ctx.sourceUrl, ctx.pageTitle, ctx.candidates);
+          const resolvedName = (r.entity ?? '').trim();
+          if (!resolvedName) return base;
+          const updated: PageContext = {
+            ...ctx,
+            primaryEntity:     resolvedName,
+            primaryEntityType: r.entityType ?? (base.entityType as 'person' | 'org'),
+            resolveEntity:     false,
+          };
+          tabContext.set(tabId, updated);
+          sendToPopup(tabId, { type: 'CONTEXT_READY', context: updated });
+          return { entity: resolvedName, entityType: updated.primaryEntityType };
+        } catch {
+          return base;
+        }
+      };
+
+      maybeResolveSocial()
+        .then(maybeResolveAI)
+        .then(({ entity, entityType }) => doFetch(entity, entityType))
+        .catch(() => doFetch(primaryEntity, primaryEntityType));
     }
     sendResponse({ ok: true });
     return true;
@@ -141,7 +167,7 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
       fetchAdvancedScore(entity, entityType, note)
         .then(({ job_id }) => {
           sendResponse({ job_id });
-          startPolling(activeId, job_id, entity, entityType).catch(console.error);
+          startPolling(activeId, job_id, entity).catch(console.error);
         })
         .catch((err) => {
           console.error('[Background] Advanced request failed:', err);
@@ -157,6 +183,17 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
       .then((score) => sendResponse({ score }))
       .catch((err) => {
         console.error('[Background] FETCH_SCORE failed:', err);
+        sendResponse({ error: String(err) });
+      });
+    return true;
+  }
+
+  if (msg.type === 'RESOLVE_ENTITY') {
+    const { url, title, candidates } = msg;
+    resolveEntityAI(url, title, candidates)
+      .then((r) => sendResponse(r))
+      .catch((err) => {
+        console.error('[Background] RESOLVE_ENTITY failed:', err);
         sendResponse({ error: String(err) });
       });
     return true;

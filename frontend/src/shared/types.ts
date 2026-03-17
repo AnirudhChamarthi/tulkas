@@ -17,6 +17,11 @@ export interface PageContext {
   /** Social profile: platform name for home vs handle for profile; triggers backend resolve */
   platform?:         string;
   resolveHandle?:    boolean;
+  /** AI fallback: ask backend to resolve best entity to score for this URL */
+  resolveEntity?:    boolean;
+  /** Optional context for AI resolution (page title, extracted candidates) */
+  pageTitle?:        string;
+  candidates?:       string[];
 }
 
 export interface DimensionScore {
@@ -63,4 +68,5 @@ export type Message =
   | { type: 'CONTEXT_READY';     context: PageContext }
   | { type: 'TULKAS_RELOAD' }
   | { type: 'PAGE_CHANGED' }
-  | { type: 'FETCH_SCORE'; entity: string; entityType: string };  // manual search via background
+  | { type: 'FETCH_SCORE'; entity: string; entityType: string }   // manual search via background
+  | { type: 'RESOLVE_ENTITY'; url: string; title?: string; candidates?: string[] }; // AI resolve via background

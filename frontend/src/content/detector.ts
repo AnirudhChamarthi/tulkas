@@ -2,6 +2,24 @@ import { PageContext } from '../shared/types';
 import { matchRegistry } from './registry';
 import { parseSchemaOrg } from './schemaOrg';
 
+function extractAmazonBrandCandidate(): string | null {
+  // Common Amazon byline: "Visit the Vaseline Store" / "Brand: Vaseline"
+  const byline = document.querySelector('#bylineInfo')?.textContent?.trim() ?? '';
+  const m1 = byline.match(/Visit the\s+(.+?)\s+Store/i);
+  if (m1?.[1]) return m1[1].trim().slice(0, 100);
+
+  const brandLabel = document.querySelector('#bylineInfo_feature_div')?.textContent?.trim() ?? '';
+  const m2 = brandLabel.match(/Brand:\s*([^\n|•]+)$/i);
+  if (m2?.[1]) return m2[1].trim().slice(0, 100);
+
+  return null;
+}
+
+function extractAmazonProductTitle(): string | null {
+  const t = document.querySelector('#productTitle')?.textContent?.trim();
+  return t ? t.replace(/\s+/g, ' ').slice(0, 200) : null;
+}
+
 function titleFallback(): string {
   return document.title
     .split(/[-|–—]/)[0]
@@ -75,12 +93,21 @@ export function detectPage(): PageContext {
     if (reg.type === 'marketplace-product') {
       const schema = parseSchemaOrg();
       const brand  = schema?.brand ?? schema?.name ?? null;
+      const needsResolve = !schema?.brand && !extractAmazonBrandCandidate();
+      const candidates = [
+        extractAmazonBrandCandidate(),
+        extractAmazonProductTitle(),
+        schema?.name ?? null,
+      ].filter(Boolean).slice(0, 6) as string[];
       return {
         type:              'marketplace-product',
         primaryEntity:     brand || 'Amazon',
         primaryEntityType: 'org',
         sourceUrl:         href,
-        confidence:        brand ? 'high' : 'medium',
+        confidence:        schema?.brand ? 'high' : (brand ? 'medium' : 'low'),
+        resolveEntity:     needsResolve,
+        pageTitle:         document.title?.trim().slice(0, 200) || undefined,
+        candidates:        needsResolve ? candidates : undefined,
       };
     }
 
