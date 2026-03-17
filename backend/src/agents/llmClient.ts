@@ -88,7 +88,7 @@ type LLMScoreResult = Record<Dimension, DimensionScore>;
  */
 export async function callLLMRaw(userContent: string): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
+  const timer = setTimeout(() => controller.abort(), 20000);
   const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
     signal: controller.signal,
     method: 'POST',
@@ -111,7 +111,7 @@ export async function callLLMRaw(userContent: string): Promise<string> {
 
 async function callInference(userContent: string, strict: boolean): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 9000);
+  const timer = setTimeout(() => controller.abort(), 25000);
   const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
     signal: controller.signal,
     method: 'POST',
