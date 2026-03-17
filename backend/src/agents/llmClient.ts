@@ -20,6 +20,7 @@ Global contract (applies to all dimensions):
 - Victimisation is scored neutrally: being the victim of a crime or injustice is not misconduct and must not reduce the score. It also does not automatically increase the score; only the entity’s own positive acts can raise a dimension above 5.
 - Nonpartisanship: political affiliation, ideology, popularity, or controversy are never themselves a positive or negative factor. Politicians with equivalent documented records must be scored equivalently regardless of party.
 - Scores below 5 must rest on specific documented acts (convictions, settlements, regulatory findings, named policies with named victims), not general rhetoric or reputation.
+- Tulkas must never score entire nations, ethnic groups, or religions. Always identify and score a specific person, company, or organisation that can be held responsible for concrete actions; if the requested subject is a whole country, ethnicity, or faith, treat it as out of scope.
 
 Dimension-specific focus (what to look for):
 - Environment: net real-world environmental impact (emissions, large projects, conservation efforts). Weigh large-scale positive projects against documented harms.

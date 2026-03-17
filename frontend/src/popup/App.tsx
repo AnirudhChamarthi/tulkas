@@ -223,6 +223,9 @@ function App() {
           <span class="app-title">Tulkas</span>
           <button type="button" class="reload-btn" onClick={handleReload} title="Reload Tulkas">↻</button>
         </header>
+        <p class="hint-msg">
+          Tulkas does not score public groups of people. It is designed for specific people and organisations only.
+        </p>
         {getScoreTimeout && (
           <p class="hint-msg hint-msg--warning">
             Tulkas may need a reload. Try closing this popup and opening it again, or reload the page.
@@ -271,6 +274,10 @@ function App() {
             showReasonsDefault={true}
           />
         )}
+        <footer class="app-footer">
+          <p class="disclaimer">Tulkas does not score public groups of people.</p>
+          <p class="disclaimer">Tulkas can be wrong - it is a helper, not a total source of truth. Please do your own research.</p>
+        </footer>
       </div>
     );
   }
@@ -291,6 +298,10 @@ function App() {
         activeJobId={activeJobId}
         loadingHint={loadingHint}
       />
+      <footer class="app-footer">
+        <p class="disclaimer">Tulkas does not score public groups of people.</p>
+        <p class="disclaimer">Tulkas can be wrong - it is a helper, not a total source of truth. Please do your own research.</p>
+      </footer>
     </div>
   );
 }
