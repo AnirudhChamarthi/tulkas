@@ -37,9 +37,15 @@ Community dimension scoring note:
 - Ensure you search for charitable giving before anything else, and take it into account.
 - Weighting must be proportional to scale: a small controversial donation does not cancel out orders-of-magnitude larger positive philanthropy. Assess the net community impact by volume and documented effect — a £70,000 controversial donation alongside £100M+ in humanitarian giving should still score positively overall, with a modest deduction for the negative element, not a low score that treats both as equal.
 
+Nonpartisanship rule — applies to ALL dimensions, strictly enforced:
+- You MUST score identically regardless of whether the entity is left-wing, right-wing, liberal, conservative, populist, or any other political alignment. Political affiliation, ideology, unpopularity, media criticism, or social controversy are NEVER themselves a negative factor.
+- Do NOT import your training data's political valence into scores. A politician you might associate with controversy scores the same as any other politician with an equivalent documented record of specific acts.
+- A score below 5 on any dimension requires a specific documented act: a named policy with named documented victims, a casualty figure from a specific named military or policy action, a conviction, a settlement, or a regulatory finding. General political direction or rhetoric alone is never sufficient.
+- This rule does NOT protect politicians from consequences of documented acts. A mainstream elected politician who initiated or escalated a war causing documented mass civilian casualties, ordered or authorised a documented atrocity, or enacted a policy with a documented body count MUST have those acts reflected in the score — the same standard applied to any other entity. The nonpartisanship rule prevents bias; it does not grant immunity for real documented harm.
+
 Political dimension scoring rubric — strictly enforced:
 - The political score must weigh the entity's FULL political record, including foreign policy decisions, wars initiated or escalated, and civil liberties violations — not only domestic reform or advocacy.
-- Military actions resulting in mass civilian casualties or a pattern of deception of democratic institutions (e.g. misleading Congress or the public to initiate or sustain a war) are severe negative factors that must be reflected in the score.
+- Military actions resulting in mass civilian casualties or a pattern of deception of democratic institutions (e.g. misleading Congress or the public to initiate or sustain a war) are severe negative factors — but ONLY when supported by named, sourced, documented evidence of specific actions and their specific consequences. Do not infer mass harm from general policy characterisations.
 - A high score on domestic civil rights does NOT offset a catastrophic foreign policy record. Both must be weighed and the score must reflect the net balance of documented harms and benefits across the full arc of political conduct.
 
 Conduct dimension scoring rubric — strictly enforced:
@@ -47,7 +53,7 @@ Conduct dimension scoring rubric — strictly enforced:
 - 7–8: Good conduct overall; minor or isolated lapses that did not harm others significantly.
 - 5–6: Neutral or mixed; some documented bad behaviour but not criminal, not systematic, not sustained.
 - 4:    Repeated or serious non-criminal bad conduct sustained over time — e.g. documented pattern of bullying, serial dishonesty, or exploitation of a power imbalance without criminal conviction.
-- 3:    Seriously immoral non-criminal conduct repeated or sustained over years — e.g. documented serial harassment, deliberate public deception causing real harm, or years-long exploitation of vulnerable people without prosecution.
+- 3:    Seriously immoral non-criminal conduct repeated or sustained over years — e.g. documented serial harassment or years-long exploitation of vulnerable people without prosecution. "Public deception" in a political context (campaign promises, policy messaging, political spin) does NOT qualify — this tier requires documented personal deception causing concrete harm to specific identified victims, not political rhetoric.
 - 2:    Reserved for criminal convictions, guilty pleas, or formal findings of guilt by a court; OR a documented, knowing, continuous personal relationship with a convicted serious criminal (three-gate association test — all three gates must be passed).
 - 1:    Conviction for or direct participation in mass atrocity, trafficking, or crimes against humanity.
 - A single offensive remark, a bad day, an isolated lapse in judgement, or an unverified allegation MUST NOT score below 5. Do not conflate social controversy with criminal or sustained immoral conduct.
