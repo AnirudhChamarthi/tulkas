@@ -200,6 +200,13 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
   }
 
   if (msg.type === 'TULKAS_RELOAD') {
+    // Clear entire local score cache so stale scores from previous backend
+    // deployments don't survive the reload.
+    chrome.storage.local.get(null, (items) => {
+      const staleKeys = Object.keys(items).filter((k) => k.startsWith('tulkas_score_'));
+      if (staleKeys.length > 0) chrome.storage.local.remove(staleKeys);
+    });
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id ?? -1;
       tabContext.delete(tabId);
