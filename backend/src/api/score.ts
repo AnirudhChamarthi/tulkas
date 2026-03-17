@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { redisClient, getCachedScore, setCachedScore, setJobStatus } from '../cache/redis';
 import { findEntityByName } from '../db/entities';
@@ -37,6 +38,89 @@ scoreRouter.get('/resolve', async (req: Request, res: Response): Promise<void> =
   } catch (err) {
     console.error('GET /score/resolve error:', err);
     res.json({ entity: handle }); // fallback: keep handle
+  }
+});
+
+// POST /score/resolve-entity — AI fallback to resolve what to score from a URL/page
+scoreRouter.post('/resolve-entity', async (req: Request, res: Response): Promise<void> => {
+  const { url, title, candidates } = req.body as {
+    url?:        string;
+    title?:      string;
+    candidates?: string[];
+  };
+
+  const cleanUrl = (url ?? '').trim();
+  const cleanTitle = (title ?? '').trim();
+  const cleanCandidates = Array.isArray(candidates)
+    ? candidates.map((c) => String(c).trim()).filter(Boolean).slice(0, 10)
+    : [];
+
+  if (!cleanUrl || cleanUrl.length > 2000) {
+    res.status(400).json({ error: 'url required, max 2000 chars' });
+    return;
+  }
+  if (cleanTitle.length > 200) {
+    res.status(400).json({ error: 'title must be 200 characters or fewer' });
+    return;
+  }
+
+  const key = `resolve_entity:${createHash('sha1').update(cleanUrl).digest('hex')}`;
+  try {
+    const cached = await redisClient.get(key);
+    if (cached) {
+      res.json(JSON.parse(cached) as { entity: string; entityType: 'person' | 'org'; confidence?: string });
+      return;
+    }
+  } catch {
+    // ignore cache parse failures
+  }
+
+  const prompt = [
+    `You help a browser extension decide WHAT ENTITY to score ethically for the current page.`,
+    ``,
+    `Given:`,
+    `- URL: ${cleanUrl}`,
+    cleanTitle ? `- Title: ${cleanTitle}` : `- Title: (missing)`,
+    cleanCandidates.length ? `- Candidates: ${cleanCandidates.join(' | ')}` : `- Candidates: (none)`,
+    ``,
+    `Rules:`,
+    `- If this is a marketplace product page (Amazon/etc), return the BRAND or MANUFACTURER (e.g. "Vaseline", "Rogaine"), NOT the marketplace ("Amazon"), unless you truly cannot infer the brand.`,
+    `- If this is a social profile page, return the person or organisation behind the account if obvious; otherwise return the handle/account name.`,
+    `- Prefer a real-world entity name over a full product title.`,
+    `- entityType must be "person" or "org".`,
+    ``,
+    `Respond with ONLY valid JSON in this schema:`,
+    `{"entity":"<string or empty>","entityType":"person|org","confidence":"high|medium|low"}`,
+  ].join('\n');
+
+  try {
+    const raw = await callLLMRaw(prompt);
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    const slice = jsonStart !== -1 && jsonEnd !== -1 ? raw.slice(jsonStart, jsonEnd + 1) : raw;
+    const parsed = JSON.parse(slice) as { entity?: unknown; entityType?: unknown; confidence?: unknown };
+
+    const entity = String(parsed.entity ?? '').trim();
+    const entityTypeRaw = String(parsed.entityType ?? '').trim().toLowerCase();
+    const entityType: 'person' | 'org' = entityTypeRaw === 'person' ? 'person' : 'org';
+    const confidence = String(parsed.confidence ?? '').trim().toLowerCase();
+
+    const payload = {
+      entity: entity || '',
+      entityType,
+      confidence: confidence === 'high' || confidence === 'medium' || confidence === 'low' ? confidence : 'low',
+    };
+
+    try {
+      await redisClient.set(key, JSON.stringify(payload), { EX: RESOLVE_TTL });
+    } catch {
+      // ignore cache set failures
+    }
+
+    res.json(payload);
+  } catch (err) {
+    console.error('POST /score/resolve-entity error:', err);
+    res.json({ entity: '', entityType: 'org', confidence: 'low' });
   }
 });
 
