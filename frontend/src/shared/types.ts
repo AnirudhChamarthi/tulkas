@@ -62,4 +62,5 @@ export type Message =
   | { type: 'ADVANCED_UPDATE';   jobId: string; status: JobStatus }
   | { type: 'CONTEXT_READY';     context: PageContext }
   | { type: 'TULKAS_RELOAD' }
-  | { type: 'PAGE_CHANGED' };   // same-tab navigation; popup should refetch
+  | { type: 'PAGE_CHANGED' }
+  | { type: 'FETCH_SCORE'; entity: string; entityType: string };  // manual search via background

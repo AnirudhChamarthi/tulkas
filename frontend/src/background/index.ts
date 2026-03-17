@@ -151,6 +151,17 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
     return true;
   }
 
+  if (msg.type === 'FETCH_SCORE') {
+    const { entity, entityType } = msg;
+    fetchScore(entity, entityType)
+      .then((score) => sendResponse({ score }))
+      .catch((err) => {
+        console.error('[Background] FETCH_SCORE failed:', err);
+        sendResponse({ error: String(err) });
+      });
+    return true;
+  }
+
   if (msg.type === 'TULKAS_RELOAD') {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id ?? -1;

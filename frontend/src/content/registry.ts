@@ -18,7 +18,7 @@ const REGISTRY: RegistryEntry[] = [
     type:       'marketplace-product',
     entityType: 'org',
     platform:   'Amazon',
-    isMainPage: (u) => !/^\/(dp|gp\/product)\//i.test(u.pathname),
+    isMainPage: (u) => !(/\/dp\//i.test(u.pathname) || /\/gp\/product\//i.test(u.pathname)),
   },
   {
     pattern:    /([a-z]+\.)?wikipedia\.org\/wiki\//i,

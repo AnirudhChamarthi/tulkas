@@ -95,16 +95,20 @@ function App() {
         setState((s) => ({
           ...s,
           context:        ctx,
-          primaryLoading: false,
-          searchQuery:    ctx.primaryEntity,
-          searchType:     ctx.primaryEntityType,
-          searchLoading:  true,
+          primaryLoading:  false,
+          searchQuery:     ctx.primaryEntity,
+          searchType:      ctx.primaryEntityType,
+          searchLoading:   true,
         }));
-        import('../shared/constants').then(({ BACKEND_URL }) =>
-          fetch(`${BACKEND_URL}/score?entity=${encodeURIComponent(ctx.primaryEntity)}&type=${encodeURIComponent(ctx.primaryEntityType)}`)
-            .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-            .then((s: ScorePayload) => setState((prev) => ({ ...prev, searchResult: s, searchLoading: false, searchLoadingHint: false })))
-            .catch((err) => setState((prev) => ({ ...prev, searchError: String(err), searchLoading: false, searchLoadingHint: false })))
+        chrome.runtime.sendMessage(
+          { type: 'FETCH_SCORE', entity: ctx.primaryEntity, entityType: ctx.primaryEntityType } satisfies Message,
+          (res: { score?: ScorePayload; error?: string }) => {
+            if (res?.error) {
+              setState((prev) => ({ ...prev, searchError: friendlyError(res.error), searchLoading: false, searchLoadingHint: false }));
+            } else if (res?.score) {
+              setState((prev) => ({ ...prev, searchResult: res.score!, searchLoading: false, searchLoadingHint: false }));
+            }
+          }
         );
         return;
       }
@@ -168,23 +172,28 @@ function App() {
     return () => clearTimeout(id);
   }, [state.primaryLoading, state.searchLoading]);
 
-  async function handleSearch(e: Event) {
+  function handleSearch(e: Event) {
     e.preventDefault();
     const q = state.searchQuery.trim();
     if (!q) return;
     setState((s) => ({ ...s, searchLoading: true, searchResult: null, searchError: null }));
 
-    try {
-      const { BACKEND_URL } = await import('../shared/constants');
-      const res  = await fetch(
-        `${BACKEND_URL}/score?entity=${encodeURIComponent(q)}&type=${encodeURIComponent(state.searchType)}`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const score = (await res.json()) as ScorePayload;
-      setState((s) => ({ ...s, searchResult: score, searchLoading: false }));
-    } catch (err) {
-      setState((s) => ({ ...s, searchError: friendlyError(String(err)), searchLoading: false, searchLoadingHint: false }));
-    }
+    chrome.runtime.sendMessage(
+      { type: 'FETCH_SCORE', entity: q, entityType: state.searchType } satisfies Message,
+      (res: { score?: ScorePayload; error?: string }) => {
+        if (chrome.runtime.lastError) {
+          setState((s) => ({ ...s, searchError: friendlyError(chrome.runtime.lastError.message), searchLoading: false }));
+          return;
+        }
+        if (res?.error) {
+          setState((s) => ({ ...s, searchError: friendlyError(res.error), searchLoading: false, searchLoadingHint: false }));
+          return;
+        }
+        if (res?.score) {
+          setState((s) => ({ ...s, searchResult: res.score!, searchLoading: false }));
+        }
+      }
+    );
   }
 
   const { context, primaryScore, primaryLoading, weights, activeJobId, getScoreTimeout, loadingHint, searchLoadingHint } = state;
