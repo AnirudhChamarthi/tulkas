@@ -75,6 +75,20 @@ function getDisplayNameFromPage(): string | null {
   return null;
 }
 
+function getLinkedInDisplayName(): string | null {
+  const ogTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content')?.trim() ?? '';
+  const title = document.title?.trim() ?? '';
+  const raw = ogTitle || title;
+  if (!raw) return null;
+  // Typical: "First Last | LinkedIn" or "Company: X | LinkedIn"
+  const cleaned = raw.replace(/\s*\|\s*LinkedIn\s*$/i, '').replace(/^Company:\s*/i, '').trim();
+  if (!cleaned) return null;
+  if (/linkedin/i.test(cleaned)) return null;
+  // Avoid returning generic UI labels
+  if (cleaned.length < 2) return null;
+  return cleaned.slice(0, 100);
+}
+
 export function detectPage(): PageContext {
   const href = location.href;
   const reg = matchRegistry(href);
@@ -160,6 +174,19 @@ export function detectPage(): PageContext {
     }
 
     if (reg.name) {
+      if (reg.platform === 'LinkedIn') {
+        const displayName = getLinkedInDisplayName();
+        return {
+          type:              reg.type,
+          primaryEntity:     displayName || reg.name,
+          primaryEntityType: reg.entityType,
+          sourceUrl:         href,
+          confidence:        displayName ? 'high' : 'medium',
+          resolveEntity:     !displayName, // only if metadata missing
+          pageTitle:         document.title?.trim().slice(0, 200) || undefined,
+          candidates:        !displayName ? [reg.name].filter(Boolean) : undefined,
+        };
+      }
       return {
         type:              reg.type,
         primaryEntity:     reg.name,

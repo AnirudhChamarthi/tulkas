@@ -52,7 +52,11 @@ const REGISTRY: RegistryEntry[] = [
     isMainPage: () => false,
     extractName: (url) => {
       const parts = url.pathname.split('/').filter(Boolean);
-      return parts[1] ?? null;
+      const slug = parts[1] ?? null;
+      if (!slug) return null;
+      // LinkedIn profile slugs often end with numeric IDs; keep words, drop noisy tail.
+      const decoded = decodeURIComponent(slug).replace(/-/g, ' ');
+      return decoded.replace(/\s+\d{3,}\s*$/g, '').trim() || decoded.trim();
     },
   },
   {
@@ -64,7 +68,9 @@ const REGISTRY: RegistryEntry[] = [
     extractName: (url) => {
       const parts = url.pathname.split('/').filter(Boolean);
       const slug  = parts[parts.length - 1];
-      return slug ? decodeURIComponent(slug).replace(/-/g, ' ') : null;
+      if (!slug) return null;
+      const decoded = decodeURIComponent(slug).replace(/-/g, ' ');
+      return decoded.replace(/\s+\d{3,}\s*$/g, '').trim() || decoded.trim();
     },
   },
   {
