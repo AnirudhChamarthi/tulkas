@@ -104,7 +104,7 @@ function App() {
           { type: 'FETCH_SCORE', entity: ctx.primaryEntity, entityType: ctx.primaryEntityType } satisfies Message,
           (res: { score?: ScorePayload; error?: string }) => {
             if (res?.error) {
-              setState((prev) => ({ ...prev, searchError: friendlyError(res.error), searchLoading: false, searchLoadingHint: false }));
+              setState((prev) => ({ ...prev, searchError: friendlyError(res.error ?? 'Unknown error'), searchLoading: false, searchLoadingHint: false }));
             } else if (res?.score) {
               setState((prev) => ({ ...prev, searchResult: res.score!, searchLoading: false, searchLoadingHint: false }));
             }
@@ -181,12 +181,13 @@ function App() {
     chrome.runtime.sendMessage(
       { type: 'FETCH_SCORE', entity: q, entityType: state.searchType } satisfies Message,
       (res: { score?: ScorePayload; error?: string }) => {
-        if (chrome.runtime.lastError) {
-          setState((s) => ({ ...s, searchError: friendlyError(chrome.runtime.lastError.message), searchLoading: false }));
+        const err = chrome.runtime.lastError;
+        if (err) {
+          setState((s) => ({ ...s, searchError: friendlyError(err.message ?? 'Unknown error'), searchLoading: false }));
           return;
         }
         if (res?.error) {
-          setState((s) => ({ ...s, searchError: friendlyError(res.error), searchLoading: false, searchLoadingHint: false }));
+          setState((s) => ({ ...s, searchError: friendlyError(res.error ?? 'Unknown error'), searchLoading: false, searchLoadingHint: false }));
           return;
         }
         if (res?.score) {
