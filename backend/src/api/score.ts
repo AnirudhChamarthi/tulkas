@@ -22,13 +22,11 @@ function extractJson(raw: string): string {
 }
 
 /**
- * Allowlist gate: returns true only when the LLM confirms the name refers to
- * a specific individual person OR a specific named company/organisation/brand.
+ * Allowlist gate: only blocks when the LLM explicitly says the name is NOT a
+ * specific person or organisation. On LLM timeout/error, the entity is allowed
+ * through (the scoring prompt has its own guardrails).
  *
- * Everything else (countries, religions, ethnicities, nationalities, political
- * movements, demographic labels, abstract concepts…) returns false → blocked.
- *
- * Fail-closed: on LLM error/timeout the entity is NOT scored.
+ * Only caches definitive answers; LLM failures are never cached.
  */
 async function isScorable(name: string): Promise<boolean> {
   const norm = name.trim().toLowerCase();
@@ -55,20 +53,23 @@ async function isScorable(name: string): Promise<boolean> {
     ``,
     `Subject: "${name}"`,
     ``,
-    `Reply with ONLY valid JSON, nothing else:`,
+    `Reply with ONLY valid JSON: {"scorable": true} or {"scorable": false}`,
   ].join('\n');
 
-  let scorable = false;
   try {
     const raw = await callLLMRaw(prompt);
     const parsed = JSON.parse(extractJson(raw)) as { scorable?: unknown };
-    scorable = parsed.scorable === true;
-  } catch {
-    scorable = false;
-  }
+    const val = parsed.scorable;
+    const scorable = val === true || val === 'true';
+    const rejected = val === false || val === 'false';
 
-  await redisClient.set(key, scorable ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
-  return scorable;
+    if (scorable || rejected) {
+      await redisClient.set(key, scorable ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
+    }
+    return !rejected;
+  } catch {
+    return true;
+  }
 }
 
 // GET /score/resolve?handle=:h&platform=:p — resolve social handle to public figure or ACCOUNT_ONLY
