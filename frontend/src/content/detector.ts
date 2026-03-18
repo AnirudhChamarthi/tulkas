@@ -1,9 +1,29 @@
 import { PageContext } from '../shared/types';
-import { matchRegistry } from './registry';
+import { matchRegistry, isMarketplaceHost } from './registry';
 import { parseSchemaOrg } from './schemaOrg';
 
+/**
+ * Extract a brand hint from the Amazon URL slug.
+ * Typical pattern: /Brand-Name-Rest-Of-Product-Title/dp/BXXXXXXXXX
+ * The first hyphen-token is almost always the brand.
+ */
+function extractAmazonBrandFromUrl(): string | null {
+  const m = location.pathname.match(/^\/([^/]+)\/dp\//i);
+  if (!m) return null;
+  const slug = decodeURIComponent(m[1]);
+  const tokens = slug.split('-').filter(Boolean);
+  if (!tokens.length) return null;
+
+  // Take the first token; if it's very short (e.g. "3M"), keep it.
+  // If the second token is capitalised the same way, it's likely part of the brand name.
+  let brand = tokens[0];
+  if (tokens.length > 1 && /^[A-Z]/.test(tokens[1]) && tokens[1] !== tokens[1].toLowerCase()) {
+    brand += ' ' + tokens[1];
+  }
+  return brand.slice(0, 100) || null;
+}
+
 function extractAmazonBrandCandidate(): string | null {
-  // Common Amazon byline: "Visit the Vaseline Store" / "Brand: Vaseline"
   const byline = document.querySelector('#bylineInfo')?.textContent?.trim() ?? '';
   const m1 = byline.match(/Visit the\s+(.+?)\s+Store/i);
   if (m1?.[1]) return m1[1].trim().slice(0, 100);
@@ -105,20 +125,24 @@ export function detectPage(): PageContext {
     }
 
     if (reg.type === 'marketplace-product') {
-      const schema = parseSchemaOrg();
-      const brand  = schema?.brand ?? schema?.name ?? null;
-      const needsResolve = !schema?.brand && !extractAmazonBrandCandidate();
+      const schema     = parseSchemaOrg();
+      const domBrand   = extractAmazonBrandCandidate();
+      const urlBrand   = extractAmazonBrandFromUrl();
+      const brand      = schema?.brand ?? domBrand ?? urlBrand ?? schema?.name ?? null;
+      const platformName = isMarketplaceHost(location.hostname) ?? reg.platform;
+      const needsResolve = !schema?.brand && !domBrand && !urlBrand;
       const candidates = [
-        extractAmazonBrandCandidate(),
+        domBrand,
+        urlBrand,
         extractAmazonProductTitle(),
         schema?.name ?? null,
       ].filter(Boolean).slice(0, 6) as string[];
       return {
         type:              'marketplace-product',
-        primaryEntity:     brand || 'Amazon',
+        primaryEntity:     brand || platformName,
         primaryEntityType: 'org',
         sourceUrl:         href,
-        confidence:        schema?.brand ? 'high' : (brand ? 'medium' : 'low'),
+        confidence:        schema?.brand ? 'high' : (domBrand ? 'high' : (urlBrand ? 'medium' : 'low')),
         resolveEntity:     needsResolve,
         pageTitle:         document.title?.trim().slice(0, 200) || undefined,
         candidates:        needsResolve ? candidates : undefined,

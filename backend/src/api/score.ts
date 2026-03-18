@@ -89,11 +89,19 @@ scoreRouter.get('/resolve', async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const prompt = `Is the ${platform} account @${handle} associated with a public figure who has a first and last name? If yes, reply with ONLY that person's full name (e.g. "Elon Musk"). If no, reply exactly: ACCOUNT_ONLY`;
+    const prompt = [
+      `Is the ${platform} account @${handle} a public figure with a real first and last name?`,
+      `If YES: reply with ONLY the full name, nothing else. Example: Elon Musk`,
+      `If NO or UNSURE: reply with exactly: ACCOUNT_ONLY`,
+      `Do NOT explain your reasoning. Output ONLY the name or ACCOUNT_ONLY.`,
+    ].join('\n');
     const raw = await callLLMRaw(prompt);
-    const entity = raw.trim().toUpperCase() === 'ACCOUNT_ONLY' ? handle : raw.trim();
+    const trimmed = raw.trim().replace(/^["']|["']$/g, '');
+    const isAccountOnly = trimmed.toUpperCase().includes('ACCOUNT_ONLY');
+    const looksLikeName = trimmed.length <= 80 && !trimmed.includes('.') && !/\b(I |found|however|couldn|information|associated|recognized)\b/i.test(trimmed);
+    const entity = !isAccountOnly && looksLikeName ? trimmed : handle;
     if (entity) await redisClient.set(cacheKey, entity, { EX: RESOLVE_TTL });
-    res.json({ entity: entity || handle });
+    res.json({ entity });
   } catch {
     res.json({ entity: handle });
   }
