@@ -38,13 +38,13 @@ async function isBroadPublicGroup(name: string): Promise<boolean> {
     `{"reject": true/false}`,
   ].join('\n');
 
-  const raw = await callLLMRaw(prompt);
   let reject = false;
   try {
+    const raw = await callLLMRaw(prompt);
     const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
     reject = parsed.reject === true;
   } catch {
-    reject = false;
+    return false;
   }
 
   await redisClient.set(key, reject ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
