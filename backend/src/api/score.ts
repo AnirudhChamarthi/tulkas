@@ -21,36 +21,6 @@ function extractJson(raw: string): string {
   return raw.trim();
 }
 
-async function isBroadPublicGroup(name: string): Promise<boolean> {
-  const norm = name.trim().toLowerCase();
-  const key  = `reject_public_group:${createHash('sha1').update(norm).digest('hex')}`;
-
-  const cached = await redisClient.get(key).catch(() => null);
-  if (cached) return cached === '1';
-
-  const prompt = [
-    `Decide whether the subject below refers to a broad public group (nations/countries, nationalities, ethnic groups, religions, or other mass identities)`,
-    `rather than a specific person, company, or organisation that can be held responsible for concrete actions.`,
-    ``,
-    `Subject: ${name}`,
-    ``,
-    `Reply with ONLY valid JSON:`,
-    `{"reject": true/false}`,
-  ].join('\n');
-
-  let reject = false;
-  try {
-    const raw = await callLLMRaw(prompt);
-    const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
-    reject = parsed.reject === true;
-  } catch {
-    return false;
-  }
-
-  await redisClient.set(key, reject ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
-  return reject;
-}
-
 // GET /score/resolve?handle=:h&platform=:p — resolve social handle to public figure or ACCOUNT_ONLY
 scoreRouter.get('/resolve', async (req: Request, res: Response): Promise<void> => {
   const handle  = (req.query.handle as string | undefined)?.trim();
@@ -201,12 +171,7 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Path 3: Cache and DB both missed — check for broad public groups before live scoring
-    const reject = await isBroadPublicGroup(name);
-    if (reject) {
-      res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
-      return;
-    }
+    // Path 3: Cache and DB both missed — run live Tier 1 scorer
     const liveScore = await runBasicScorer(name, type);
     res.json({ source: 'live', ...liveScore });
 
@@ -246,20 +211,6 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
   const job_id = uuidv4();
 
   try {
-    // Only classify broad public groups on cache+DB miss.
-    // This avoids adding an extra LLM call for entities we already have in Redis/Postgres.
-    const cachedTier1 = await getCachedScore(name, type, 1).catch(() => null);
-    if (!cachedTier1) {
-      const entity = await findEntityByName(name).catch(() => null);
-      if (!entity) {
-        const reject = await isBroadPublicGroup(name);
-        if (reject) {
-          res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
-          return;
-        }
-      }
-    }
-
     await setJobStatus(job_id, {
       status:     'pending',
       started_at: new Date().toISOString(),
