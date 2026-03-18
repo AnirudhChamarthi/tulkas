@@ -99,7 +99,24 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
             tabScore.set(tabId, score);
             sendToPopup(tabId, { type: 'SCORE_READY', score, entity });
           })
-          .catch(console.error);
+          .catch((err) => {
+            const msg = err instanceof Error ? err.message : String(err);
+            if (/does not score public groups of people/i.test(msg)) {
+              // Switch to manual/unknown view and show the scope disclaimer.
+              const updated: PageContext = {
+                ...ctx,
+                type: 'unknown',
+                primaryEntity: '',
+                confidence: 'low',
+                resolveHandle: false,
+                resolveEntity: false,
+              };
+              tabContext.set(tabId, updated);
+              sendToPopup(tabId, { type: 'CONTEXT_READY', context: updated });
+              return;
+            }
+            console.error(err);
+          });
       };
 
       const maybeResolveSocial = async () => {

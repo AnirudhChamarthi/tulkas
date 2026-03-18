@@ -6,7 +6,16 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     ...options,
   });
-  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  if (!res.ok) {
+    let msg = `API ${res.status}: ${path}`;
+    try {
+      const body = await res.json() as { error?: unknown };
+      if (body?.error) msg = String(body.error);
+    } catch {
+      // non-json error body
+    }
+    throw new Error(msg);
+  }
   return res.json() as Promise<T>;
 }
 

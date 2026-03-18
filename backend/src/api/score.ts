@@ -12,6 +12,45 @@ export const scoreRouter = Router();
 
 const RESOLVE_TTL = 60 * 60 * 24 * 7; // 7 days
 
+function extractJson(raw: string): string {
+  const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenced) return fenced[1].trim();
+  const start = raw.indexOf('{');
+  const end = raw.lastIndexOf('}');
+  if (start !== -1 && end !== -1) return raw.slice(start, end + 1);
+  return raw.trim();
+}
+
+async function isBroadPublicGroup(name: string): Promise<boolean> {
+  const norm = name.trim().toLowerCase();
+  const key  = `reject_public_group:${createHash('sha1').update(norm).digest('hex')}`;
+
+  const cached = await redisClient.get(key).catch(() => null);
+  if (cached) return cached === '1';
+
+  const prompt = [
+    `Decide whether the subject below refers to a broad public group (nations/countries, nationalities, ethnic groups, religions, or other mass identities)`,
+    `rather than a specific person, company, or organisation that can be held responsible for concrete actions.`,
+    ``,
+    `Subject: ${name}`,
+    ``,
+    `Reply with ONLY valid JSON:`,
+    `{"reject": true/false}`,
+  ].join('\n');
+
+  const raw = await callLLMRaw(prompt);
+  let reject = false;
+  try {
+    const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
+    reject = parsed.reject === true;
+  } catch {
+    reject = false; // fail-closed for correctness: only reject when explicitly indicated
+  }
+
+  await redisClient.set(key, reject ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
+  return reject;
+}
+
 // GET /score/resolve?handle=:h&platform=:p — resolve social handle to public figure or ACCOUNT_ONLY
 scoreRouter.get('/resolve', async (req: Request, res: Response): Promise<void> => {
   const handle  = (req.query.handle as string | undefined)?.trim();
@@ -138,6 +177,16 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
+    // Guardrail: refuse broad public groups (nations, ethnic groups, religions, etc.).
+    // This prevents scoring subjects like "Israel" or "Islam" even if they appear as page titles.
+    if (type === 'person') {
+      const reject = await isBroadPublicGroup(name);
+      if (reject) {
+        res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
+        return;
+      }
+    }
+
     // Path 1: Redis cache
     const cached = await getCachedScore(name, type, 1);
     if (cached) {
@@ -182,6 +231,18 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
   // Normalise legacy DB values (e.g. 'combined') rather than rejecting — the
   // scorer only needs to know person vs org.
   const normalisedType = entity_type === 'org' ? 'org' : 'person';
+
+  try {
+    if (normalisedType === 'person') {
+      const reject = await isBroadPublicGroup(entity_name);
+      if (reject) {
+        res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
+        return;
+      }
+    }
+  } catch {
+    // If classification fails, fall through to scoring.
+  }
 
   if (user_note && user_note.length > 100) {
     res.status(400).json({ error: 'user_note must be 100 characters or fewer' });
