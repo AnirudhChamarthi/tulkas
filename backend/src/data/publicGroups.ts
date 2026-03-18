@@ -365,9 +365,67 @@ const RELIGIONS: string[] = [
   'Atheism'
 ];
 
+const DEMOGRAPHICS: string[] = [
+  // Demonyms & hyphenated variants
+  'African Americans',
+  'African-Americans',
+  'Asian Americans',
+  'Asian-Americans',
+  'Native Americans',
+  'Native-Americans',
+  'Latin Americans',
+  'Latin-Americans',
+  'European Americans',
+  'European-Americans',
+  'Hispanic Americans',
+  'Hispanic-Americans',
+  'Arab Americans',
+  'Arab-Americans',
+  'Pacific Islanders',
+  'Indigenous peoples',
+  'First Nations',
+  // Common single-word demonyms / ethnic labels
+  'Americans',
+  'Brits',
+  'Britons',
+  'Hispanics',
+  'Latinos',
+  'Latinas',
+  'Latinx',
+  'Chicanos',
+  'Chicanas',
+  'Aboriginals',
+  'Mestizos',
+  // Ethnic groups
+  'Kurds',
+  'Romani',
+  'Roma',
+  'Uyghurs',
+  'Yazidis',
+  'Berbers',
+  'Tamils',
+  'Rohingya',
+  'Tutsi',
+  'Hutu',
+  'Pashtuns',
+  'Baloch',
+  'Tibetans',
+  'Hmong',
+  'Zulu',
+  'Maori',
+  'Inuit',
+  // Generational / broad demographic
+  'Boomers',
+  'Millennials',
+  'Gen Z',
+  'Gen X',
+  'Zoomers',
+];
+
 const BROAD_GROUPS = new Set<string>([
   ...COUNTRIES.map(normalize),
   ...RELIGIONS.map(normalize),
+  ...DEMOGRAPHICS.map(normalize),
 ]);
 
 export function isBroadPublicGroup(name: string): boolean {

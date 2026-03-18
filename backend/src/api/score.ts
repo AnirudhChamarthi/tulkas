@@ -218,7 +218,9 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({ error: PUBLIC_GROUP_MSG });
       return;
     }
-    if (await isEthnicOrDemographic(name)) {
+    // Layer 2 only for single-word inputs (ethnic terms like "Kurds", "Romani").
+    // Multi-word inputs are person/company names — skip the LLM to avoid false positives.
+    if (!name.includes(' ') && await isEthnicOrDemographic(name)) {
       res.status(400).json({ error: PUBLIC_GROUP_MSG });
       return;
     }
