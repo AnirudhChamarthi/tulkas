@@ -261,18 +261,6 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
   const type  = normalisedType;
   const note  = user_note;
 
-  // Block broad public groups before creating a job
-  if (isBroadPublicGroup(name)) {
-    res.status(400).json({ error: PUBLIC_GROUP_MSG });
-    return;
-  }
-  try {
-    if (await isEthnicOrDemographic(name)) {
-      res.status(400).json({ error: PUBLIC_GROUP_MSG });
-      return;
-    }
-  } catch { /* fail-open */ }
-
   const job_id = uuidv4();
 
   try {

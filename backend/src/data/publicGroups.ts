@@ -350,7 +350,6 @@ const RELIGIONS: string[] = [
   'Conservative Judaism',
   'Orthodox Judaism',
   // Hindu traditions
-  'Hare Krishna',
   'Shaivism',
   'Vaishnavism',
   // Adherent / group labels
@@ -363,8 +362,7 @@ const RELIGIONS: string[] = [
   'Atheists',
   'Agnostics',
   'Pagans',
-  'Scientologists',
-  'Scientology',
+  'Atheism'
 ];
 
 const BROAD_GROUPS = new Set<string>([
