@@ -69,58 +69,80 @@ type LLMScoreResult = Record<Dimension, DimensionScore>;
  */
 export async function callLLMRaw(userContent: string): Promise<string> {
   const controller = new AbortController();
+  const start = Date.now();
   const timer = setTimeout(() => controller.abort(), 20000);
-  const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
-    signal: controller.signal,
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${API_KEY()}`,
-      'Content-Type':  'application/json',
-    },
-    body: JSON.stringify({
-      model:       MODEL_ID(),
-      messages:    [{ role: 'user', content: userContent }],
-      max_tokens:  256,
-      temperature: 0.0,
-    }),
-  });
-  clearTimeout(timer);
-  if (!res.ok) throw new Error(`Gradient inference error ${res.status}`);
-  const data = await res.json() as { choices: Array<{ message: { content: string } }> };
-  return data.choices[0]?.message?.content ?? '';
+  try {
+    const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
+      signal: controller.signal,
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY()}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model:       MODEL_ID(),
+        messages:    [{ role: 'user', content: userContent }],
+        max_tokens:  256,
+        temperature: 0.0,
+      }),
+    });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`Gradient inference error ${res.status}`);
+    const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+    return data.choices[0]?.message?.content ?? '';
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      console.error(`[LLM] Raw inference timed out after ${Date.now() - start}ms`);
+      throw new Error(`LLM raw inference timed out after ${Date.now() - start}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function callInference(userContent: string, strict: boolean): Promise<string> {
   const controller = new AbortController();
+  const start = Date.now();
   const timer = setTimeout(() => controller.abort(), 25000);
-  const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
-    signal: controller.signal,
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${API_KEY()}`,
-      'Content-Type':  'application/json',
-    },
-    body: JSON.stringify({
-      model:           MODEL_ID(),
-      messages:        [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user',   content: strict ? userContent + '\n\nRespond with JSON only. No explanation.' : userContent },
-      ],
-      max_tokens:      TIER1_MAX_TOKENS,
-      temperature:     0.1,
-    }),
-  });
+  try {
+    const res = await fetch(`${INFERENCE_URL()}/v1/chat/completions`, {
+      signal: controller.signal,
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY()}`,
+        'Content-Type':  'application/json',
+      },
+      body: JSON.stringify({
+        model:           MODEL_ID(),
+        messages:        [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user',   content: strict ? userContent + '\n\nRespond with JSON only. No explanation.' : userContent },
+        ],
+        max_tokens:      TIER1_MAX_TOKENS,
+        temperature:     0.1,
+      }),
+    });
 
-  clearTimeout(timer);
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Gradient inference error ${res.status}: ${text}`);
+    clearTimeout(timer);
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Gradient inference error ${res.status}: ${text}`);
+    }
+
+    const data = await res.json() as {
+      choices: Array<{ message: { content: string } }>;
+    };
+    return data.choices[0]?.message?.content ?? '{}';
+  } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      console.error(`[LLM] Inference timed out after ${Date.now() - start}ms`);
+      throw new Error(`LLM inference timed out after ${Date.now() - start}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const data = await res.json() as {
-    choices: Array<{ message: { content: string } }>;
-  };
-  return data.choices[0]?.message?.content ?? '{}';
 }
 
 function extractJson(raw: string): string {
