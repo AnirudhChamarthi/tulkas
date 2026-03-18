@@ -46,7 +46,7 @@ body {
   border-bottom:   1px solid var(--c-border);
 }
 
-.app-logo { width: 20px; height: 20px; }
+.app-logo { font-size: 18px; line-height: 1; }
 
 .reload-btn {
   background:    transparent;

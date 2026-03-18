@@ -220,7 +220,6 @@ function App() {
     return (
       <div class="app">
         <header class="app-header">
-          <img src="../icons/icon48.png" alt="" class="app-logo" />
           <span class="app-title">Tulkas</span>
           <button type="button" class="reload-btn" onClick={handleReload} title="Reload Tulkas">↻</button>
         </header>
@@ -287,7 +286,6 @@ function App() {
   return (
     <div class="app">
       <header class="app-header">
-        <img src="../icons/icon48.png" alt="" class="app-logo" />
         <span class="app-title">Tulkas</span>
         <button type="button" class="reload-btn" onClick={handleReload} title="Reload Tulkas">↻</button>
       </header>
