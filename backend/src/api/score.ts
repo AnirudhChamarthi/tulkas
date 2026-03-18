@@ -21,34 +21,54 @@ function extractJson(raw: string): string {
   return raw.trim();
 }
 
-async function isBroadPublicGroup(name: string): Promise<boolean> {
+/**
+ * Allowlist gate: returns true only when the LLM confirms the name refers to
+ * a specific individual person OR a specific named company/organisation/brand.
+ *
+ * Everything else (countries, religions, ethnicities, nationalities, political
+ * movements, demographic labels, abstract concepts…) returns false → blocked.
+ *
+ * Fail-closed: on LLM error/timeout the entity is NOT scored.
+ */
+async function isScorable(name: string): Promise<boolean> {
   const norm = name.trim().toLowerCase();
-  const key  = `reject_public_group:${createHash('sha1').update(norm).digest('hex')}`;
+  const key  = `scorable_gate:${createHash('sha1').update(norm).digest('hex')}`;
 
   const cached = await redisClient.get(key).catch(() => null);
-  if (cached) return cached === '1';
+  if (cached === '1') return true;
+  if (cached === '0') return false;
 
   const prompt = [
-    `Decide whether the subject below refers to a broad public group (nations/countries, nationalities, ethnic groups, religions, or other mass identities)`,
-    `rather than a specific person, company, or organisation that can be held responsible for concrete actions.`,
+    `You are a strict classifier. Given the subject below, decide whether it is:`,
+    `(A) A specific individual person with a real name (e.g. "Elon Musk", "Malala Yousafzai"), OR`,
+    `(B) A specific named company, corporation, brand, or organisation (e.g. "Amazon", "Red Cross", "FIFA").`,
     ``,
-    `Subject: ${name}`,
+    `If the subject clearly fits (A) or (B), reply {"scorable": true}.`,
     ``,
-    `Reply with ONLY valid JSON:`,
-    `{"reject": true/false}`,
+    `If the subject is ANY of the following, reply {"scorable": false}:`,
+    `- A country, nation, state, or territory (e.g. "Israel", "France", "Palestine")`,
+    `- A religion, denomination, or faith (e.g. "Islam", "Christianity", "Sunni")`,
+    `- An ethnic group, tribe, or nationality (e.g. "Kurds", "Romani", "Americans")`,
+    `- A demographic, political movement, or broad social group (e.g. "Liberals", "Gen Z", "The West")`,
+    `- An abstract concept, ideology, or practice (e.g. "Capitalism", "Democracy")`,
+    `- Anything else that is not a single accountable person or named organisation`,
+    ``,
+    `Subject: "${name}"`,
+    ``,
+    `Reply with ONLY valid JSON, nothing else:`,
   ].join('\n');
 
-  const raw = await callLLMRaw(prompt);
-  let reject = false;
+  let scorable = false;
   try {
-    const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
-    reject = parsed.reject === true;
+    const raw = await callLLMRaw(prompt);
+    const parsed = JSON.parse(extractJson(raw)) as { scorable?: unknown };
+    scorable = parsed.scorable === true;
   } catch {
-    reject = false; // fail-closed for correctness: only reject when explicitly indicated
+    scorable = false;
   }
 
-  await redisClient.set(key, reject ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
-  return reject;
+  await redisClient.set(key, scorable ? '1' : '0', { EX: RESOLVE_TTL }).catch(() => {});
+  return scorable;
 }
 
 // GET /score/resolve?handle=:h&platform=:p — resolve social handle to public figure or ACCOUNT_ONLY
@@ -193,13 +213,11 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Path 3: Cache and DB both missed — run live Tier 1 scorer
-    if (type === 'person') {
-      const reject = await isBroadPublicGroup(name);
-      if (reject) {
-        res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
-        return;
-      }
+    // Path 3: Cache and DB both missed — allowlist gate before live scoring
+    const scorable = await isScorable(name);
+    if (!scorable) {
+      res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
+      return;
     }
     const liveScore = await runBasicScorer(name, type);
     res.json({ source: 'live', ...liveScore });
@@ -240,14 +258,13 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
   const job_id = uuidv4();
 
   try {
-    // Only classify broad public groups on cache+DB miss.
-    // This avoids adding an extra LLM call for entities we already have in Redis/Postgres.
+    // Allowlist gate on cache+DB miss — prevents live-scoring broad public groups.
     const cachedTier1 = await getCachedScore(name, type, 1).catch(() => null);
     if (!cachedTier1) {
       const entity = await findEntityByName(name).catch(() => null);
-      if (!entity && type === 'person') {
-        const reject = await isBroadPublicGroup(name);
-        if (reject) {
+      if (!entity) {
+        const scorable = await isScorable(name);
+        if (!scorable) {
           res.status(400).json({ error: 'Tulkas does not score public groups of people.' });
           return;
         }
