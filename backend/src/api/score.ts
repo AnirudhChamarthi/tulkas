@@ -7,10 +7,44 @@ import { entityToScorePayload } from '../db/scores';
 import { runBasicScorer } from '../agents/basicScorer';
 import { runAdvancedScorer } from '../agents/advancedScorer';
 import { callLLMRaw } from '../agents/llmClient';
+import { isBroadPublicGroup } from '../data/publicGroups';
 
 export const scoreRouter = Router();
 
 const RESOLVE_TTL = 60 * 60 * 24 * 7; // 7 days
+const ETHNIC_TTL  = 60 * 60 * 24 * 7; // 7 days
+
+const PUBLIC_GROUP_MSG = 'Tulkas does not score public groups of people.';
+
+async function isEthnicOrDemographic(name: string): Promise<boolean> {
+  const norm = name.trim().toLowerCase();
+  const key  = `reject_ethnic:${createHash('sha1').update(norm).digest('hex')}`;
+
+  try {
+    const cached = await redisClient.get(key);
+    if (cached === '1') return true;
+    if (cached === '0') return false;
+  } catch { /* ignore cache read failure */ }
+
+  const prompt = [
+    'Is the following the name of an ethnic group, nationality/demonym, tribe, caste, or broad demographic group (e.g. "Kurds", "Romani", "Americans", "millennials")?',
+    'It is NOT an ethnic/demographic group if it is a specific person, company, brand, or organisation.',
+    '',
+    `Subject: ${name}`,
+    '',
+    'Reply with ONLY valid JSON: {"reject": true} or {"reject": false}',
+  ].join('\n');
+
+  try {
+    const raw = await callLLMRaw(prompt);
+    const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
+    const reject = parsed.reject === true;
+    await redisClient.set(key, reject ? '1' : '0', { EX: ETHNIC_TTL }).catch(() => {});
+    return reject;
+  } catch {
+    return false; // fail-open: on LLM timeout/parse error, let the entity through
+  }
+}
 
 function extractJson(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -171,7 +205,17 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Path 3: Cache and DB both missed — run live Tier 1 scorer
+    // Path 3: Block broad public groups before live scoring
+    if (isBroadPublicGroup(name)) {
+      res.status(400).json({ error: PUBLIC_GROUP_MSG });
+      return;
+    }
+    if (await isEthnicOrDemographic(name)) {
+      res.status(400).json({ error: PUBLIC_GROUP_MSG });
+      return;
+    }
+
+    // Path 4: Run live Tier 1 scorer
     const liveScore = await runBasicScorer(name, type);
     res.json({ source: 'live', ...liveScore });
 
@@ -208,6 +252,19 @@ scoreRouter.post('/advanced', async (req: Request, res: Response): Promise<void>
   const name  = entity_name;
   const type  = normalisedType;
   const note  = user_note;
+
+  // Block broad public groups before creating a job
+  if (isBroadPublicGroup(name)) {
+    res.status(400).json({ error: PUBLIC_GROUP_MSG });
+    return;
+  }
+  try {
+    if (await isEthnicOrDemographic(name)) {
+      res.status(400).json({ error: PUBLIC_GROUP_MSG });
+      return;
+    }
+  } catch { /* fail-open */ }
+
   const job_id = uuidv4();
 
   try {
