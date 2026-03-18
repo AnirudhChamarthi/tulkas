@@ -1,16 +1,7 @@
-const LOCAL_DEFAULT = 'http://localhost:8081';
+const PROD_BACKEND  = 'https://tulkas-backend-ctpjf.ondigitalocean.app';
+const LOCAL_BACKEND = 'http://localhost:8081';
 
-/** Local backend (development). */
-const LOCAL_BACKEND =
-  (import.meta.env.VITE_BACKEND_URL_LOCAL ?? LOCAL_DEFAULT).trim() || LOCAL_DEFAULT;
-
-/** Production backend (DigitalOcean App Platform). Set in .env.production before publishing. */
-const PROD_BACKEND =
-  (import.meta.env.VITE_BACKEND_URL_PROD || import.meta.env.VITE_BACKEND_URL)?.trim() || null;
-
-/** Resolves to local URL in dev, production URL in built extension. Never empty. */
-export const BACKEND_URL =
-  (import.meta.env.PROD ? (PROD_BACKEND ?? LOCAL_BACKEND) : LOCAL_BACKEND) || LOCAL_DEFAULT;
+export const BACKEND_URL = import.meta.env.PROD ? PROD_BACKEND : LOCAL_BACKEND;
 
 export const DIMENSIONS = [
   'environment',
