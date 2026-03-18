@@ -27,8 +27,16 @@ async function isEthnicOrDemographic(name: string): Promise<boolean> {
   } catch { /* ignore cache read failure */ }
 
   const prompt = [
-    'Is the following the name of an ethnic group, nationality/demonym, tribe, caste, or broad demographic group (e.g. "Kurds", "Romani", "Americans", "millennials")?',
-    'It is NOT an ethnic/demographic group if it is a specific person, company, brand, or organisation.',
+    'Classify the subject below. Answer ONE question:',
+    'Is it SOLELY the name of an ethnic group, nationality/demonym, tribe, caste, or broad demographic category?',
+    '',
+    'REJECT (true) examples: "Kurds", "Romani", "Americans", "Boomers", "Latinos", "Uyghurs"',
+    'ACCEPT (false) examples: "Sam Reich", "Snoop Dogg", "Benjamin Netanyahu", "Apple", "Goldman Sachs", "Georgia Tech"',
+    '',
+    'Key rules:',
+    '- If it looks like a person name (first + last name), it is NOT an ethnic group. Return false.',
+    '- Company names, brand names, and organisation names are NOT ethnic groups. Return false.',
+    '- Only return true for words that EXCLUSIVELY refer to a group of people defined by ethnicity, nationality, or demographic.',
     '',
     `Subject: ${name}`,
     '',
