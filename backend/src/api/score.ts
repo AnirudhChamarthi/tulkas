@@ -31,7 +31,7 @@ async function isEthnicOrDemographic(name: string): Promise<boolean> {
     'Is it SOLELY the name of an ethnic group, nationality/demonym, tribe, caste, or broad demographic category?',
     '',
     'REJECT (true) examples: "Kurds", "Romani", "Americans", "Boomers", "Latinos", "Uyghurs"',
-    'ACCEPT (false) examples: "Sam Reich", "Snoop Dogg", "Benjamin Netanyahu", "Apple", "Goldman Sachs", "Georgia Tech"',
+    'ACCEPT (false) examples: "Sam Reich", "Giannis", "Giannis Antetokounmpo", "Snoop Dogg", "Benjamin Netanyahu", "Apple", "Goldman Sachs", "Georgia Tech"',
     '',
     'Key rules:',
     '- If it looks like a person name (first + last name), it is NOT an ethnic group. Return false.',
