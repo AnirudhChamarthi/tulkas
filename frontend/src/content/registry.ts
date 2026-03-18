@@ -233,53 +233,6 @@ export function isMarketplaceHost(hostname: string): string | null {
   return null;
 }
 
-/**
- * Hostname fragments for 30 major online marketplaces / retailers.
- * Used by the content script to trigger DOM-retry logic on product pages where
- * brand data is injected asynchronously.
- */
-export const MARKETPLACE_HOSTS: ReadonlyMap<string, string> = new Map([
-  ['amazon.',          'Amazon'],
-  ['alibaba.com',      'Alibaba'],
-  ['aliexpress.com',   'AliExpress'],
-  ['ebay.',            'eBay'],
-  ['walmart.com',      'Walmart'],
-  ['target.com',       'Target'],
-  ['bestbuy.com',      'Best Buy'],
-  ['barnesandnoble.com', 'Barnes & Noble'],
-  ['etsy.com',         'Etsy'],
-  ['wayfair.com',      'Wayfair'],
-  ['newegg.com',       'Newegg'],
-  ['homedepot.com',    'Home Depot'],
-  ['lowes.com',        "Lowe's"],
-  ['costco.com',       'Costco'],
-  ['samsclub.com',     "Sam's Club"],
-  ['overstock.com',    'Overstock'],
-  ['nordstrom.com',    'Nordstrom'],
-  ['macys.com',        "Macy's"],
-  ['zappos.com',       'Zappos'],
-  ['chewy.com',        'Chewy'],
-  ['bhphotovideo.com', 'B&H Photo'],
-  ['sephora.com',      'Sephora'],
-  ['ulta.com',         'Ulta'],
-  ['gamestop.com',     'GameStop'],
-  ['rakuten.',         'Rakuten'],
-  ['mercadolibre.',    'Mercado Libre'],
-  ['flipkart.com',     'Flipkart'],
-  ['jd.com',           'JD.com'],
-  ['shopee.',          'Shopee'],
-  ['temu.com',         'Temu'],
-]);
-
-/** Check whether a hostname belongs to a known marketplace. */
-export function isMarketplaceHost(hostname: string): string | null {
-  const h = hostname.toLowerCase();
-  for (const [fragment, name] of MARKETPLACE_HOSTS) {
-    if (h.includes(fragment)) return name;
-  }
-  return null;
-}
-
 export function matchRegistry(href: string): RegistryMatch | null {
   let url: URL;
   try { url = new URL(href); } catch { return null; }
