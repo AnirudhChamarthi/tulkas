@@ -35,3 +35,11 @@ export async function setCached(entity: string, score: ScorePayload, tier: 1 | 2
     // storage quota — non-fatal
   }
 }
+
+export async function removeCached(entity: string, tier: 1 | 2): Promise<void> {
+  try {
+    await chrome.storage.local.remove(cacheKey(entity, tier));
+  } catch {
+    // non-fatal
+  }
+}

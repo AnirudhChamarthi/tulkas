@@ -33,19 +33,14 @@ export function AdvancedButton({ entity, entityType, note, onComplete, initialJo
   const [jobId, setJobId] = useState<string | null>(initialJobId ?? null);
   const [error, setError] = useState<string | null>(null);
 
-  // Track when polling started so we can show elapsed time to the user.
   const [pollingStart, setPollingStart] = useState<number | null>(
     initialJobId ? Date.now() : null
   );
-  // Ticker so the elapsed-time label refreshes every 5 s while polling.
   const [, setTick] = useState(0);
 
-  // Keep a stable ref so the effect closure always calls the latest onComplete
-  // without needing to re-register the listener on every render.
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  // Start / stop the elapsed-time ticker when entering / leaving polling.
   useEffect(() => {
     if (phase !== 'polling') {
       setPollingStart(null);
@@ -56,8 +51,7 @@ export function AdvancedButton({ entity, entityType, note, onComplete, initialJo
     return () => clearInterval(id);
   }, [phase]);
 
-  function handleClick() {
-    if (phase !== 'idle' && phase !== 'failed') return;
+  function startResearch() {
     setPhase('loading');
     setJobId(null);
     setError(null);
@@ -76,9 +70,20 @@ export function AdvancedButton({ entity, entityType, note, onComplete, initialJo
     );
   }
 
-  // Register exactly ONE listener per polling session, torn down automatically
-  // when the phase changes or the component unmounts.  Keeping this in an
-  // effect (not the render body) prevents duplicate listeners.
+  function handleClick() {
+    if (phase === 'idle' || phase === 'failed') {
+      startResearch();
+    }
+  }
+
+  function handleCancel() {
+    chrome.runtime.sendMessage(
+      { type: 'CANCEL_ADVANCED', entity, entityType } satisfies Message,
+    );
+    setJobId(null);
+    setPhase('idle');
+  }
+
   useEffect(() => {
     if (phase !== 'polling' || !jobId) return;
 
@@ -96,7 +101,6 @@ export function AdvancedButton({ entity, entityType, note, onComplete, initialJo
     return () => chrome.runtime.onMessage.removeListener(listener);
   }, [phase, jobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Build the elapsed-time suffix shown while polling, e.g. " (1:23)"
   function elapsedLabel(): string {
     if (!pollingStart) return '';
     const s   = Math.floor((Date.now() - pollingStart) / 1000);
@@ -124,6 +128,15 @@ export function AdvancedButton({ entity, entityType, note, onComplete, initialJo
         {phase === 'polling' && <span class="spinner" />}
         {labels[phase]}
       </button>
+      {phase === 'polling' && (
+        <button
+          class="advanced-btn-cancel"
+          onClick={handleCancel}
+          title="Cancel and re-run with a new note"
+        >
+          Cancel
+        </button>
+      )}
       {phase === 'failed' && error && (
         <p class="advanced-btn-error" title={error}>{error}</p>
       )}

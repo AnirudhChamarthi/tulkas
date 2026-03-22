@@ -101,10 +101,11 @@ function getLinkedInDisplayName(): string | null {
   const raw = ogTitle || title;
   if (!raw) return null;
   // Typical: "First Last | LinkedIn" or "Company: X | LinkedIn"
-  const cleaned = raw.replace(/\s*\|\s*LinkedIn\s*$/i, '').replace(/^Company:\s*/i, '').trim();
+  let cleaned = raw.replace(/\s*\|\s*LinkedIn\s*$/i, '').replace(/^Company:\s*/i, '').trim();
+  // Strip leading notification count (e.g. "(3) John Smith" or "3 John Smith")
+  cleaned = cleaned.replace(/^\(?\d+\)?\s+/, '').trim();
   if (!cleaned) return null;
   if (/linkedin/i.test(cleaned)) return null;
-  // Avoid returning generic UI labels
   if (cleaned.length < 2) return null;
   return cleaned.slice(0, 100);
 }

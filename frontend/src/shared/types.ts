@@ -68,5 +68,6 @@ export type Message =
   | { type: 'CONTEXT_READY';     context: PageContext }
   | { type: 'TULKAS_RELOAD' }
   | { type: 'PAGE_CHANGED' }
+  | { type: 'CANCEL_ADVANCED'; entity: string; entityType: string }
   | { type: 'FETCH_SCORE'; entity: string; entityType: string }   // manual search via background
   | { type: 'RESOLVE_ENTITY'; url: string; title?: string; candidates?: string[] }; // AI resolve via background

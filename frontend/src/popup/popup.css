@@ -401,3 +401,19 @@ body {
   color:     var(--c-red);
   text-align:center;
 }
+
+.advanced-btn-cancel {
+  background:    transparent;
+  border:        1px solid var(--c-red);
+  border-radius: var(--radius);
+  color:         var(--c-red);
+  font-size:     11px;
+  padding:       4px 10px;
+  cursor:        pointer;
+  margin-top:    4px;
+  transition:    background 0.15s, color 0.15s;
+}
+.advanced-btn-cancel:hover {
+  background:    var(--c-red);
+  color:         #fff;
+}

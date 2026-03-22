@@ -1,6 +1,6 @@
 import { Message, PageContext, ScorePayload } from '../shared/types';
 import { POLL_INTERVAL_MS, POLL_MAX_ATTEMPTS } from '../shared/constants';
-import { getCached, setCached } from './localCache';
+import { getCached, setCached, removeCached } from './localCache';
 import { fetchScore, fetchAdvancedScore, pollJobStatus, resolveHandle, resolveEntityAI } from './apiClient';
 
 const tabContext   = new Map<number, PageContext>();
@@ -191,6 +191,16 @@ chrome.runtime.onMessage.addListener((msg: Message, sender, sendResponse) => {
           sendResponse({ error: String(err) });
         });
     });
+    return true;
+  }
+
+  if (msg.type === 'CANCEL_ADVANCED') {
+    const { entity, entityType } = msg;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const activeId = tabs[0]?.id ?? -1;
+      tabActiveJob.delete(activeId);
+    });
+    removeCached(entity, 2).then(() => sendResponse({ ok: true })).catch(() => sendResponse({ ok: true }));
     return true;
   }
 
