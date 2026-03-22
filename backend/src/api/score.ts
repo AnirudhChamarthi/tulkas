@@ -12,13 +12,13 @@ import { isBroadPublicGroup } from '../data/publicGroups';
 export const scoreRouter = Router();
 
 const RESOLVE_TTL = 60 * 60 * 24 * 7; // 7 days
-const ETHNIC_TTL  = 60 * 60 * 24 * 7; // 7 days
+const GATE_TTL    = 60 * 60 * 24 * 7; // 7 days
 
 const PUBLIC_GROUP_MSG = 'Tulkas does not score public groups of people.';
 
-async function isEthnicOrDemographic(name: string): Promise<boolean> {
+async function isPublicGroupAI(name: string): Promise<boolean> {
   const norm = name.trim().toLowerCase();
-  const key  = `reject_ethnic:${createHash('sha1').update(norm).digest('hex')}`;
+  const key  = `gate:${createHash('sha1').update(norm).digest('hex')}`;
 
   try {
     const cached = await redisClient.get(key);
@@ -27,30 +27,23 @@ async function isEthnicOrDemographic(name: string): Promise<boolean> {
   } catch { /* ignore cache read failure */ }
 
   const prompt = [
-    'Classify the subject below. Answer ONE question:',
-    'Is it SOLELY the name of an ethnic group, nationality/demonym, tribe, caste, or broad demographic category?',
+    `Is "${name}" a specific person or a specific company/organization?`,
     '',
-    'REJECT (true) examples: "Kurds", "Romani", "Americans", "Boomers", "Latinos", "Uyghurs"',
-    'ACCEPT (false) examples: "Sam Reich", "Giannis", "Giannis Antetokounmpo", "Snoop Dogg", "Benjamin Netanyahu", "Apple", "Goldman Sachs", "Georgia Tech"',
+    'If YES (person or company) → reply with only: ACCEPT',
+    'If NO — it is a nation, country, religion, ethnic group, nationality, demonym, tribe, caste, or demographic category → reply with only: REJECT',
     '',
-    'Key rules:',
-    '- If it looks like a person name (first + last name), it is NOT an ethnic group. Return false.',
-    '- Company names, brand names, and organisation names are NOT ethnic groups. Return false.',
-    '- Only return true for words that EXCLUSIVELY refer to a group of people defined by ethnicity, nationality, or demographic.',
+    'When unsure, reply ACCEPT. Only reply REJECT if you are certain this refers to a broad group, not a person or organization.',
     '',
-    `Subject: ${name}`,
-    '',
-    'Reply with ONLY valid JSON: {"reject": true} or {"reject": false}',
+    'Reply with only one word: ACCEPT or REJECT',
   ].join('\n');
 
   try {
     const raw = await callLLMRaw(prompt);
-    const parsed = JSON.parse(extractJson(raw)) as { reject?: unknown };
-    const reject = parsed.reject === true;
-    await redisClient.set(key, reject ? '1' : '0', { EX: ETHNIC_TTL }).catch(() => {});
+    const reject = /^\s*REJECT\s*$/i.test(raw.trim());
+    await redisClient.set(key, reject ? '1' : '0', { EX: GATE_TTL }).catch(() => {});
     return reject;
   } catch {
-    return false; // fail-open: on LLM timeout/parse error, let the entity through
+    return false;
   }
 }
 
@@ -214,13 +207,13 @@ scoreRouter.get('/', async (req: Request, res: Response): Promise<void> => {
     }
 
     // Path 3: Block broad public groups before live scoring
+    // Fast-path: static set catches countries and religions instantly
     if (isBroadPublicGroup(name)) {
       res.status(400).json({ error: PUBLIC_GROUP_MSG });
       return;
     }
-    // Layer 2 only for single-word inputs (ethnic terms like "Kurds", "Romani").
-    // Multi-word inputs are person/company names — skip the LLM to avoid false positives.
-    if (!name.includes(' ') && await isEthnicOrDemographic(name)) {
+    // AI gate: catches ethnic groups, demonyms, demographics the static set can't enumerate
+    if (await isPublicGroupAI(name)) {
       res.status(400).json({ error: PUBLIC_GROUP_MSG });
       return;
     }

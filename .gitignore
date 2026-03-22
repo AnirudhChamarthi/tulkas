@@ -27,6 +27,7 @@ TODO.md
 # Temporary scripts
 *.tmp.sql
 update_*.sql
+**/test-gate*.local.*
 
 .env*
 
